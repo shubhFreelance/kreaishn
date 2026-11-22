@@ -62,6 +62,9 @@ const root = document.documentElement;
 const heroEl = document.querySelector('.hero');
 const drifts = [...document.querySelectorAll('[data-drift]')];
 const cardVids = [...document.querySelectorAll('.card video')];
+const stackEl = document.querySelector('.stack');
+const stackCards = stackEl ? [...stackEl.querySelectorAll('.card')] : [];
+const FAN = [{ r: -5, x: -2.6 }, { r: 4, x: 2.4 }, { r: -2.2, x: -1.2 }, { r: 0, x: 0 }]; // alternating tilt so the deck looks tossed, not piled
 const man = document.querySelector('.manifesto p');
 let pieces = [];
 if (man) {
@@ -209,6 +212,20 @@ const onScroll = () => {
     const q = clamp01(1 - (top - vh * .6) / (vh * .4)); // settles once the heading is 60% up the screen
     el.style.translate = `${((1 - q) * 10 * el.dataset.drift).toFixed(2)}vw 0`;
   });
+  if (stackEl) {
+    const r = stackEl.getBoundingClientRect(), n = stackCards.length;
+    const p = clamp01(-r.top / Math.max(1, r.height - vh));
+    stackCards.forEach((card, i) => {
+      const t = clamp01((p - i / n) / (1 - i / n)), f = FAN[i] || FAN[FAN.length - 1], depth = n - 1 - i;
+      // zigzag entry: until its slot pins, a card flies in from alternating sides (left, right, left, right)
+      const slotTop = card.parentElement.getBoundingClientRect().top, e = clamp01(slotTop / vh) ** 1.5, dir = i % 2 ? 1 : -1;
+      if (e > 0) {
+        const ty = i === 0 ? 0 : -slotTop; // later cards cancel the upward rise so they arrive sideways at deck height
+        card.style.transform = `translate3d(${(dir * 110 * e).toFixed(2)}vw, ${ty.toFixed(1)}px, 0) rotate(${(dir * 16 * e).toFixed(2)}deg)`;
+      } else card.style.transform = t ? `translateX(${(f.x * t).toFixed(2)}vw) rotate(${(f.r * t).toFixed(2)}deg) scale(${(1 - depth * .05 * t).toFixed(4)})` : '';
+      card.style.setProperty('--dim', (depth * .14 * t).toFixed(3));
+    });
+  }
   cardVids.forEach(v => {
     const r = v.parentElement.getBoundingClientRect();
     if (r.bottom < 0 || r.top > vh) return;
