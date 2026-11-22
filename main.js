@@ -117,45 +117,6 @@ if (h1 && !reduce) {
   });
 }
 const easeInOut = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-// Star explosion at the end of the dive: a white-hot core, light rays and bright streaks flying outward (scroll-driven, so it rewinds)
-let burst = null;
-const STAR_COLS = ['#FFFFFF', '#FFF4B8', '#FFE36E', '#FF5FD2', '#FF8AE2', '#7CC8FF', '#B98CFF'];
-const starburst = q => {
-  if (!burst) {
-    const wrap = document.createElement('div');
-    wrap.className = 'starburst'; wrap.setAttribute('aria-hidden', 'true');
-    const core = document.createElement('i'); core.className = 'sb-core'; wrap.append(core);
-    const parts = [];
-    for (let i = 0; i < 84; i++) {
-      const el = document.createElement('i'), ray = i < 14;
-      el.className = ray ? 'sb-ray' : (i % 3 ? 'sb-streak' : 'sb-spark');
-      const col = STAR_COLS[(Math.random() * STAR_COLS.length) | 0];
-      el.style.setProperty('--col', col);
-      if (!ray) { const len = rnd(30, 140); el.style.width = (el.className === 'sb-spark' ? rnd(4, 10) : len) + 'px'; el.style.height = (el.className === 'sb-spark' ? el.style.width : rnd(2, 4) + 'px'); }
-      wrap.append(el);
-      parts.push({ el, ray, a: rnd(0, 360), dist: ray ? 0 : rnd(25, 85), spin: rnd(-40, 40), delay: rnd(0, .25) });
-    }
-    heroEl.append(wrap);
-    burst = { wrap, core, parts };
-  }
-  burst.wrap.style.visibility = q > 0 ? 'visible' : 'hidden';
-  if (!q) return;
-  const vmax = Math.max(innerWidth, innerHeight) / 100;
-  const coreE = 1 - (1 - clamp01(q / .5)) ** 3;
-  burst.core.style.transform = `translate(-50%, -50%) scale(${(.2 + coreE * 1.6).toFixed(3)})`;
-  burst.core.style.opacity = (q < .12 ? q / .12 : 1 - clamp01((q - .12) / .4)).toFixed(3);
-  burst.parts.forEach(p => {
-    const t = clamp01((q - p.delay) / (1 - p.delay)), e = 1 - (1 - t) ** 3;
-    const st = p.el.style;
-    if (p.ray) {
-      st.transform = `translate(0, -50%) rotate(${(p.a + p.spin * e).toFixed(1)}deg) scaleX(${(.1 + e * 1.4).toFixed(3)})`;
-      st.opacity = (t < .2 ? t / .2 : 1 - clamp01((t - .2) / .7)) * .8;
-    } else {
-      st.transform = `rotate(${(p.a + p.spin * e).toFixed(1)}deg) translateX(${(p.dist * vmax * e).toFixed(1)}px) scaleX(${(1 + e * 1.5).toFixed(3)})`;
-      st.opacity = (t < .1 ? t / .1 : 1 - clamp01((t - .35) / .65)).toFixed(3);
-    }
-  });
-};
 let flash = null; // full-screen colour flash that completes the dive (text stops rendering at extreme zoom)
 let ai = null; // AI's offset to the hero centre and its target zoom, measured at rest
 const measureAI = () => {
@@ -187,7 +148,7 @@ const explode = hp => {
   if (hp > 0 && (lastHp === 0 || !ai)) measureAI();
   if (aiEl && ai) {
     // phase 1 (0-45%): glide to centre and grow into a logo. phase 2 (45-82%): Netflix-style dive straight into the
-    // centre of the letters while the colour floods in. 82-90%: colour flash + star burst. 90-100%: fade, next section.
+    // centre of the letters while the screen fades to black. 90-100%: black fades out, next section arrives.
     const c = easeInOut(clamp01(hp / .45));
     const dz = clamp01((hp - .45) / .37);
     const sc = (1 + (ai.s - 1) * c) * Math.pow(16, dz * dz); // capped (~100x): browsers drop clipped-gradient text far beyond this
@@ -196,7 +157,6 @@ const explode = hp => {
     if (!flash) { flash = document.createElement('div'); flash.className = 'ai-flash'; flash.setAttribute('aria-hidden', 'true'); heroEl.append(flash); }
     // floods in over the last part of the dive, holds, then fades so the next section can arrive
     flash.style.opacity = (hp < .9 ? clamp01((dz - .55) / .45) : 1 - clamp01((hp - .9) / .1)).toFixed(3);
-    starburst(clamp01((hp - .8) / .2));
   }
   if (hp === 0 && lastHp > 0) bits.forEach(b => { roll(b); b.k = b.glow = undefined; }); // new random burst every time the hero is back at rest
   lastHp = hp;
