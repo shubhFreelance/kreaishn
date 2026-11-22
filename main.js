@@ -117,6 +117,45 @@ if (h1 && !reduce) {
   });
 }
 const easeInOut = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+// Star explosion at the end of the dive: a white-hot core, light rays and bright streaks flying outward (scroll-driven, so it rewinds)
+let burst = null;
+const STAR_COLS = ['#FFFFFF', '#FFF4B8', '#FFE36E', '#FF5FD2', '#FF8AE2', '#7CC8FF', '#B98CFF'];
+const starburst = q => {
+  if (!burst) {
+    const wrap = document.createElement('div');
+    wrap.className = 'starburst'; wrap.setAttribute('aria-hidden', 'true');
+    const core = document.createElement('i'); core.className = 'sb-core'; wrap.append(core);
+    const parts = [];
+    for (let i = 0; i < 84; i++) {
+      const el = document.createElement('i'), ray = i < 14;
+      el.className = ray ? 'sb-ray' : (i % 3 ? 'sb-streak' : 'sb-spark');
+      const col = STAR_COLS[(Math.random() * STAR_COLS.length) | 0];
+      el.style.setProperty('--col', col);
+      if (!ray) { const len = rnd(30, 140); el.style.width = (el.className === 'sb-spark' ? rnd(4, 10) : len) + 'px'; el.style.height = (el.className === 'sb-spark' ? el.style.width : rnd(2, 4) + 'px'); }
+      wrap.append(el);
+      parts.push({ el, ray, a: rnd(0, 360), dist: ray ? 0 : rnd(25, 85), spin: rnd(-40, 40), delay: rnd(0, .25) });
+    }
+    heroEl.append(wrap);
+    burst = { wrap, core, parts };
+  }
+  burst.wrap.style.visibility = q > 0 ? 'visible' : 'hidden';
+  if (!q) return;
+  const vmax = Math.max(innerWidth, innerHeight) / 100;
+  const coreE = 1 - (1 - clamp01(q / .5)) ** 3;
+  burst.core.style.transform = `translate(-50%, -50%) scale(${(.2 + coreE * 4).toFixed(3)})`;
+  burst.core.style.opacity = (q < .15 ? q / .15 : 1 - clamp01((q - .15) / .6)).toFixed(3);
+  burst.parts.forEach(p => {
+    const t = clamp01((q - p.delay) / (1 - p.delay)), e = 1 - (1 - t) ** 3;
+    const st = p.el.style;
+    if (p.ray) {
+      st.transform = `translate(0, -50%) rotate(${(p.a + p.spin * e).toFixed(1)}deg) scaleX(${(.1 + e * 1.4).toFixed(3)})`;
+      st.opacity = (t < .2 ? t / .2 : 1 - clamp01((t - .2) / .7)) * .8;
+    } else {
+      st.transform = `rotate(${(p.a + p.spin * e).toFixed(1)}deg) translateX(${(p.dist * vmax * e).toFixed(1)}px) scaleX(${(1 + e * 1.5).toFixed(3)})`;
+      st.opacity = (t < .1 ? t / .1 : 1 - clamp01((t - .35) / .65)).toFixed(3);
+    }
+  });
+};
 let flash = null; // full-screen colour flash that completes the dive (text stops rendering at extreme zoom)
 let ai = null; // AI's offset to the hero centre and its target zoom, measured at rest
 const measureAI = () => {
@@ -124,33 +163,22 @@ const measureAI = () => {
   const prev = aiEl.style.transform;
   aiEl.style.transform = '';
   const r = aiEl.getBoundingClientRect(), hr = heroEl.getBoundingClientRect();
-  ai = {
-    dx: hr.left + hr.width / 2 - (r.left + r.width / 2),
-    dy: hr.top + hr.height / 2 - (r.top + r.height / 2),
-    s: Math.min(hr.width * .6 / r.width, hr.height * .55 / r.height), // logo size before the dive
-  };
-  // dive target: the middle of the slanted "I" stem, found by drawing "AI" on a canvas and scanning its ink at
-  // mid-cap height, so flying into it floods the screen with the gradient instead of passing through a gap
+  // centre on the letters' ink (from font metrics), not the padded box, so the zoom stays visually centred
   const rg = document.createRange();
   rg.selectNodeContents(aiEl);
-  const tr = rg.getBoundingClientRect(), cs = getComputedStyle(aiEl), fs = parseFloat(cs.fontSize);
-  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
-  const m = ctx.measureText('AI'), aW = ctx.measureText('A').width, capH = ctx.measureText('I').actualBoundingBoxAscent;
-  const pad = Math.ceil(fs * .5), W = Math.ceil(m.width + pad * 2), y = Math.round(m.fontBoundingBoxAscent - capH / 2);
-  ctx.canvas.width = W; ctx.canvas.height = Math.ceil(m.fontBoundingBoxAscent + m.fontBoundingBoxDescent);
-  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
-  ctx.fillText('AI', pad, m.fontBoundingBoxAscent);
-  const row = ctx.getImageData(0, y, W, 1).data;
-  let best = null, start = -1;
-  for (let x = 0; x <= W; x++) {
-    const ink = x < W && row[x * 4 + 3] > 128 && x - pad > aW * .85; // only the I's ink
-    if (ink && start < 0) start = x;
-    if (!ink && start >= 0) { if (!best || x - start > best[1] - best[0]) best = [start, x]; start = -1; }
-  }
-  const sx = best ? (best[0] + best[1]) / 2 - pad : aW + (m.width - aW) / 2;
-  ai.ox = tr.left + sx - (r.left + r.width / 2);
-  ai.oy = tr.top + y - (r.top + r.height / 2);
+  const tr = rg.getBoundingClientRect(), cs = getComputedStyle(aiEl);
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const m = ctx.measureText('AI');
+  const inkX = tr.left + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
+  const inkY = tr.top + m.fontBoundingBoxAscent - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  const inkW = m.actualBoundingBoxRight + m.actualBoundingBoxLeft, inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  aiEl.style.transformOrigin = `${(inkX - r.left).toFixed(1)}px ${(inkY - r.top).toFixed(1)}px`;
+  ai = {
+    dx: hr.left + hr.width / 2 - inkX,
+    dy: hr.top + hr.height / 2 - inkY,
+    s: Math.min(hr.width * .6 / inkW, hr.height * .55 / inkH), // logo size before the dive
+  };
   aiEl.style.transform = prev;
 };
 let lastHp = 0;
@@ -158,17 +186,17 @@ const explode = hp => {
   if (!bits.length) return;
   if (hp > 0 && (lastHp === 0 || !ai)) measureAI();
   if (aiEl && ai) {
-    // phase 1 (0-45%): glide to centre and grow into a logo. phase 2 (45-82%): Netflix-style dive into the "I"
-    // that accelerates until the gradient floods the screen. 82-90%: hold the colour flash. 90-100%: fade, then the next section arrives.
+    // phase 1 (0-45%): glide to centre and grow into a logo. phase 2 (45-82%): Netflix-style dive straight into the
+    // centre of the letters while the colour floods in. 82-90%: colour flash + star burst. 90-100%: fade, next section.
     const c = easeInOut(clamp01(hp / .45));
-    const dz = clamp01((hp - .45) / .37), aim = easeInOut(dz);
+    const dz = clamp01((hp - .45) / .37);
     const sc = (1 + (ai.s - 1) * c) * Math.pow(16, dz * dz); // capped (~100x): browsers drop clipped-gradient text far beyond this
-    const tx = ai.dx * c - ai.ox * sc * aim, ty = ai.dy * c - ai.oy * sc * aim; // keeps the stem point sliding onto the screen centre
-    aiEl.style.transform = hp ? `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) scale(${sc.toFixed(3)})` : '';
+    aiEl.style.transform = hp ? `translate3d(${(ai.dx * c).toFixed(1)}px, ${(ai.dy * c).toFixed(1)}px, 0) scale(${sc.toFixed(3)})` : '';
     aiEl.style.opacity = hp > .82 ? '0' : '';
     if (!flash) { flash = document.createElement('div'); flash.className = 'ai-flash'; flash.setAttribute('aria-hidden', 'true'); heroEl.append(flash); }
     // floods in over the last part of the dive, holds, then fades so the next section can arrive
     flash.style.opacity = (hp < .9 ? clamp01((dz - .55) / .45) : 1 - clamp01((hp - .9) / .1)).toFixed(3);
+    starburst(clamp01((hp - .8) / .2));
   }
   if (hp === 0 && lastHp > 0) bits.forEach(b => { roll(b); b.k = b.glow = undefined; }); // new random burst every time the hero is back at rest
   lastHp = hp;
