@@ -119,7 +119,7 @@ if (tracks.length && !reduce) {
     const dy = scrollY - lastY; lastY = scrollY;
     if (dy) dir = dy > 0 ? 1 : -1;
     boost += (Math.min(Math.abs(dy), 80) * .35 - boost) * .12;
-    const skew = -dir * Math.min(boost, 12);
+    const skew = -dir * Math.min(boost, 4);
     st.forEach(s => {
       const W = s.t.scrollWidth / 2;
       s.x -= dir * s.d * (1 + boost) * dt;
@@ -157,7 +157,7 @@ if (heroEl && glowEl && fine && !reduce) {
   heroEl.addEventListener('pointerleave', () => heroEl.style.setProperty('--go', 0));
 }
 
-// Magnetic buttons: drift a third of the way toward the cursor, ease back slower
+// Magnetic buttons: drift a fifth of the way toward the cursor, ease back slower
 if (fine && !reduce) document.querySelectorAll('.magnet').forEach(wrap => {
   const inner = wrap.firstElementChild;
   let active = false, mraf = 0, mx = 0, my = 0;
@@ -167,7 +167,7 @@ if (fine && !reduce) document.querySelectorAll('.magnet').forEach(wrap => {
     const dx = mx - (r.left + r.width / 2), dy = my - (r.top + r.height / 2);
     if (Math.abs(dx) < r.width / 2 + 60 && Math.abs(dy) < r.height / 2 + 60) {
       if (!active) { active = true; inner.style.transition = 'transform .3s ease-out'; }
-      inner.style.transform = `translate3d(${dx / 3}px, ${dy / 3}px, 0)`;
+      inner.style.transform = `translate3d(${dx / 5}px, ${dy / 5}px, 0)`;
     } else if (active) {
       active = false;
       inner.style.transition = 'transform .6s ease-in-out';
