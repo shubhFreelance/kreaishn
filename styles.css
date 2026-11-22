@@ -250,11 +250,14 @@ footer a:hover { color: var(--ink); }
 
 /* ===== HOMEPAGE SCROLL EFFECTS ===== */
 .progress { position: fixed; top: 0; left: 0; right: 0; z-index: 60; height: 2px; background: var(--accent); transform-origin: left; transform: scaleX(var(--sp, 0)); box-shadow: 0 0 12px var(--accent); }
-.hero video { transform: scale(calc(1.05 + var(--hp, 0) * .18)); translate: calc(var(--px, 0) * -14px) calc(var(--py, 0) * -10px); }
-.hero h1 { transform: translateY(calc(var(--hp, 0) * -12vh)); opacity: calc(1 - var(--hp, 0) * 1.1); filter: blur(calc(var(--hp, 0) * 8px)); }
-/* lines split apart on scroll and drift with the pointer */
-.hero h1 .line:nth-child(1) { translate: calc(var(--hp, 0) * -22vw + var(--px, 0) * -18px) calc(var(--py, 0) * -8px); }
-.hero h1 .line:nth-child(2) { translate: calc(var(--hp, 0) * 22vw + var(--px, 0) * 18px) calc(var(--py, 0) * 8px); }
+/* scrolling out of the hero: the video darkens while the headline's letters take the video's colours and explode (main.js) */
+.hero video { transform: scale(calc(1.05 + var(--hp, 0) * .12)); translate: calc(var(--px, 0) * -14px) calc(var(--py, 0) * -10px); opacity: calc(.9 - var(--hp, 0) * 1.1); }
+.hero h1 { transform: translateY(calc(var(--hp, 0) * 22vh)); } /* sinks slightly so the burst stays on screen longer */
+.hero h1 .line:nth-child(1) { translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -8px); }
+.hero h1 .line:nth-child(2) { translate: calc(var(--px, 0) * 18px) calc(var(--py, 0) * 8px); }
+.hero h1.boom .line { overflow: visible; } /* drop the entrance mask once letters start flying */
+.hero h1 .word { display: inline-block; white-space: nowrap; }
+.hero h1 .ch { display: inline-block; will-change: transform, opacity; margin-right: -.01em; } /* makes up for kerning lost when letters are split */
 .hero-foot { translate: 0 calc(var(--hp, 0) * -6vh); }
 .track { will-change: transform; }
 .worlds { overflow-x: clip; }

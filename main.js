@@ -79,6 +79,61 @@ if (man) {
     n.replaceWith(frag);
   });
 }
+// Hero headline: split into letters that take the video's colours and explode in random directions on scroll
+const h1 = heroEl && heroEl.querySelector('h1');
+const bits = [];
+const PALETTE = ['#A58BFF', '#D9A3FF', '#C3B4FF', '#FF8FB8', '#FFC2A8', '#8E9BFF', '#FF5FA2']; // sampled from the hero video
+const rnd = (a, b) => a + Math.random() * (b - a);
+const roll = b => Object.assign(b, {
+  col: PALETTE[(Math.random() * PALETTE.length) | 0],
+  dx: b.bias + rnd(-30, 30), dy: rnd(-75, 8), rz: rnd(-260, 260), rx: rnd(-150, 150), ry: rnd(-150, 150),
+  s: rnd(.3, 2.6), d: rnd(0, .2), len: rnd(.3, .55),
+});
+if (h1 && !reduce) {
+  h1.setAttribute('aria-label', h1.textContent.replace(/\s+/g, ' ').trim());
+  h1.querySelectorAll('.line').forEach(line => {
+    line.setAttribute('aria-hidden', 'true');
+    const lineBits = [];
+    const holder = line.firstElementChild;
+    [...holder.childNodes].forEach(n => {
+      if (n.nodeType !== 3) { lineBits.push({ el: n, colored: false }); return; } // the gradient "AI," flies as one piece
+      const frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(tok => {
+        if (!tok) return;
+        if (/^\s+$/.test(tok)) { frag.append(tok); return; }
+        const word = document.createElement('span');
+        word.className = 'word';
+        [...tok].forEach(c => {
+          const ch = document.createElement('span');
+          ch.className = 'ch'; ch.textContent = c;
+          word.append(ch); lineBits.push({ el: ch, colored: true });
+        });
+        frag.append(word);
+      });
+      n.replaceWith(frag);
+    });
+    // letters on the left lean left, letters on the right lean right
+    lineBits.forEach((b, i) => { b.bias = (i / Math.max(1, lineBits.length - 1) - .5) * 60; bits.push(roll(b)); });
+  });
+}
+let lastHp = 0;
+const explode = hp => {
+  if (!bits.length) return;
+  if (hp === 0 && lastHp > 0) bits.forEach(roll); // new random burst every time the hero is back at rest
+  lastHp = hp;
+  h1.classList.toggle('boom', hp > 0);
+  const k = clamp01(hp / .08); // letters are fully coloured within the first few pixels of scroll
+  bits.forEach(b => {
+    const t = clamp01((hp - b.d) / b.len), e = 1 - (1 - t) ** 3;
+    const st = b.el.style;
+    st.transform = t ? `perspective(800px) translate3d(${(b.dx * e).toFixed(2)}vw, ${(b.dy * e).toFixed(2)}vh, 0) rotateX(${(b.rx * e).toFixed(1)}deg) rotateY(${(b.ry * e).toFixed(1)}deg) rotate(${(b.rz * e).toFixed(1)}deg) scale(${(1 + (b.s - 1) * e).toFixed(3)})` : '';
+    st.opacity = t > .55 ? (1 - (t - .55) / .45).toFixed(3) : '';
+    if (b.colored) {
+      st.color = k ? `color-mix(in oklch, ${b.col} ${(k * 100).toFixed(0)}%, #F5F1EA)` : '';
+      st.textShadow = t ? `0 0 ${(e * 28).toFixed(1)}px ${b.col}` : '';
+    }
+  });
+};
 let ticking = false;
 const clamp01 = v => Math.min(1, Math.max(0, v));
 const onScroll = () => {
@@ -93,7 +148,7 @@ const onScroll = () => {
     pieces.forEach((el, i) => el.style.setProperty('--t', clamp01((p - (i / N - .08)) / .12).toFixed(3)));
   }
   if (reduce) return;
-  if (heroEl && y < vh * 1.2) root.style.setProperty('--hp', clamp01(y / vh).toFixed(4));
+  if (heroEl && y < vh * 1.2) { root.style.setProperty('--hp', clamp01(y / vh).toFixed(4)); explode(clamp01(y / vh)); }
   drifts.forEach(el => {
     const top = el.parentElement.getBoundingClientRect().top;
     const q = clamp01(1 - (top - vh * .6) / (vh * .4)); // settles once the heading is 60% up the screen
