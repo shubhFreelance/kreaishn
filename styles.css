@@ -273,15 +273,25 @@ footer a:hover { color: var(--ink); }
 .scrolled .nav::before { opacity: 1; }
 
 /* ===== FLASH LAYER ===== */
-/* "AI," cycles through the studio colours, holding each for 3s */
-.shine { color: var(--studio); animation: ai-colors 15s ease-in-out infinite; }
+/* "AI," has a soft two-colour gradient that fades to a new pair every 3s
+   (registered colour properties are what make a gradient animatable) */
+@property --g1 { syntax: "<color>"; inherits: false; initial-value: #A58BFF; }
+@property --g2 { syntax: "<color>"; inherits: false; initial-value: #FF5FA2; }
+.shine {
+  --g1: var(--studio); --g2: var(--creators);
+  background: linear-gradient(115deg, var(--g1) 10%, var(--g2) 90%);
+  background: linear-gradient(in oklch 115deg, var(--g1) 10%, var(--g2) 90%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  padding: 0 .1em 0 .02em; margin: 0 -.08em 0 -.02em;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--g1) 35%, transparent));
+  animation: ai-colors 12s ease-in-out infinite;
+}
 @keyframes ai-colors {
-  0%, 18% { color: var(--studio); }
-  20%, 38% { color: var(--creators); }
-  40%, 58% { color: var(--learn); }
-  60%, 78% { color: var(--build); }
-  80%, 98% { color: var(--accent); }
-  100% { color: var(--studio); }
+  0%, 17% { --g1: var(--studio); --g2: var(--creators); }
+  25%, 42% { --g1: var(--creators); --g2: var(--learn); }
+  50%, 67% { --g1: var(--learn); --g2: var(--accent); }
+  75%, 92% { --g1: var(--build); --g2: var(--studio); }
+  100% { --g1: var(--studio); --g2: var(--creators); }
 }
 ::selection { background: var(--accent); color: #0B0A05; -webkit-text-fill-color: #0B0A05; }
 
