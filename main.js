@@ -142,8 +142,8 @@ const starburst = q => {
   if (!q) return;
   const vmax = Math.max(innerWidth, innerHeight) / 100;
   const coreE = 1 - (1 - clamp01(q / .5)) ** 3;
-  burst.core.style.transform = `translate(-50%, -50%) scale(${(.2 + coreE * 4).toFixed(3)})`;
-  burst.core.style.opacity = (q < .15 ? q / .15 : 1 - clamp01((q - .15) / .6)).toFixed(3);
+  burst.core.style.transform = `translate(-50%, -50%) scale(${(.2 + coreE * 1.6).toFixed(3)})`;
+  burst.core.style.opacity = (q < .12 ? q / .12 : 1 - clamp01((q - .12) / .4)).toFixed(3);
   burst.parts.forEach(p => {
     const t = clamp01((q - p.delay) / (1 - p.delay)), e = 1 - (1 - t) ** 3;
     const st = p.el.style;
