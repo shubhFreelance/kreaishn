@@ -273,10 +273,16 @@ footer a:hover { color: var(--ink); }
 .scrolled .nav::before { opacity: 1; }
 
 /* ===== FLASH LAYER ===== */
-/* iridescent shine on the hero's magic word */
-.shine { background: linear-gradient(100deg, var(--studio) 0%, var(--creators) 50%, var(--studio) 100%); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; padding: 0 .1em 0 .02em; margin: 0 -.08em 0 -.02em; animation: shine 10s linear infinite; }
-.hero h1 .serif.shine { color: transparent; }
-@keyframes shine { from { background-position: 0% center; } to { background-position: -200% center; } }
+/* "AI," cycles through the studio colours, holding each for 3s */
+.shine { color: var(--studio); animation: ai-colors 15s ease-in-out infinite; }
+@keyframes ai-colors {
+  0%, 18% { color: var(--studio); }
+  20%, 38% { color: var(--creators); }
+  40%, 58% { color: var(--learn); }
+  60%, 78% { color: var(--build); }
+  80%, 98% { color: var(--accent); }
+  100% { color: var(--studio); }
+}
 ::selection { background: var(--accent); color: #0B0A05; -webkit-text-fill-color: #0B0A05; }
 
 /* cursor-following colour glow over the hero video */
