@@ -82,7 +82,7 @@ if (man) {
 // Hero headline: split into letters that take the video's colours and explode in random directions on scroll
 const h1 = heroEl && heroEl.querySelector('h1');
 const bits = [];
-const PALETTE = ['#A58BFF', '#D9A3FF', '#C3B4FF', '#FF8FB8', '#FFC2A8', '#8E9BFF', '#FF5FA2']; // sampled from the hero video
+const PALETTE = ['#2F7BFF', '#5AA2FF', '#FFD21F', '#FFB800', '#FF2E93', '#FF66C4']; // vivid blue, yellow and pink for the burst
 const rnd = (a, b) => a + Math.random() * (b - a);
 const roll = b => Object.assign(b, {
   col: PALETTE[(Math.random() * PALETTE.length) | 0],
@@ -148,7 +148,12 @@ const onScroll = () => {
     pieces.forEach((el, i) => el.style.setProperty('--t', clamp01((p - (i / N - .08)) / .12).toFixed(3)));
   }
   if (reduce) return;
-  if (heroEl && y < vh * 1.2) { root.style.setProperty('--hp', clamp01(y / vh).toFixed(4)); explode(clamp01(y / vh)); }
+  if (heroEl && y < vh * 1.2) {
+    const hp = clamp01(y / vh);
+    root.style.setProperty('--hp', hp.toFixed(4));
+    root.style.setProperty('--dim', (1 - (1 - clamp01(hp / .4)) ** 2).toFixed(4)); // ease-out: darkens right away, near-black by 40%
+    explode(hp);
+  }
   drifts.forEach(el => {
     const top = el.parentElement.getBoundingClientRect().top;
     const q = clamp01(1 - (top - vh * .6) / (vh * .4)); // settles once the heading is 60% up the screen
