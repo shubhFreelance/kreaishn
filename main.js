@@ -79,24 +79,25 @@ if (man) {
     n.replaceWith(frag);
   });
 }
-// Hero headline: split into letters that take the video's colours and explode in random directions on scroll
+// Hero headline: letters take vivid colours and burst (EVERYTHING to the left, ONE STUDIO. to the right) while "AI," glides to the centre and zooms
 const h1 = heroEl && heroEl.querySelector('h1');
 const bits = [];
+let aiEl = null;
 const PALETTE = ['#2F7BFF', '#5AA2FF', '#FFD21F', '#FFB800', '#FF2E93', '#FF66C4']; // vivid blue, yellow and pink for the burst
 const rnd = (a, b) => a + Math.random() * (b - a);
 const roll = b => Object.assign(b, {
   col: PALETTE[(Math.random() * PALETTE.length) | 0],
-  dx: b.bias + rnd(-30, 30), dy: rnd(-75, 8), rz: rnd(-260, 260), rx: rnd(-150, 150), ry: rnd(-150, 150),
+  dx: b.dir * rnd(30, 75), dy: rnd(-45, 45), rz: rnd(-260, 260), rx: rnd(-150, 150), ry: rnd(-150, 150),
   s: rnd(.3, 2.6), d: rnd(0, .2), len: rnd(.3, .55),
 });
 if (h1 && !reduce) {
   h1.setAttribute('aria-label', h1.textContent.replace(/\s+/g, ' ').trim());
-  h1.querySelectorAll('.line').forEach(line => {
+  h1.querySelectorAll('.line').forEach((line, li) => {
     line.setAttribute('aria-hidden', 'true');
     const lineBits = [];
     const holder = line.firstElementChild;
     [...holder.childNodes].forEach(n => {
-      if (n.nodeType !== 3) { lineBits.push({ el: n, colored: false }); return; } // the gradient "AI," flies as one piece
+      if (n.nodeType !== 3) { aiEl = n; return; } // the gradient "AI," zooms instead of bursting
       const frag = document.createDocumentFragment();
       n.textContent.split(/(\s+)/).forEach(tok => {
         if (!tok) return;
@@ -112,13 +113,31 @@ if (h1 && !reduce) {
       });
       n.replaceWith(frag);
     });
-    // letters on the left lean left, letters on the right lean right
-    lineBits.forEach((b, i) => { b.bias = (i / Math.max(1, lineBits.length - 1) - .5) * 60; bits.push(roll(b)); });
+    lineBits.forEach(b => { b.dir = li === 0 ? -1 : 1; bits.push(roll(b)); }); // line 1 bursts left, line 2 right
   });
 }
+const easeInOut = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+let ai = null; // AI's offset to the hero centre and its target zoom, measured at rest
+const measureAI = () => {
+  if (!aiEl) return;
+  const prev = aiEl.style.transform;
+  aiEl.style.transform = '';
+  const r = aiEl.getBoundingClientRect(), hr = heroEl.getBoundingClientRect();
+  ai = {
+    dx: hr.left + hr.width / 2 - (r.left + r.width / 2),
+    dy: hr.top + hr.height / 2 - (r.top + r.height / 2),
+    s: Math.min(hr.width * .8 / r.width, hr.height * .75 / r.height), // fills ~80% of the screen
+  };
+  aiEl.style.transform = prev;
+};
 let lastHp = 0;
 const explode = hp => {
   if (!bits.length) return;
+  if (hp > 0 && (lastHp === 0 || !ai)) measureAI();
+  if (aiEl && ai) {
+    const c = easeInOut(clamp01(hp / .6)), z = easeInOut(clamp01(hp / .85));
+    aiEl.style.transform = hp ? `translate3d(${(ai.dx * c).toFixed(1)}px, ${(ai.dy * c).toFixed(1)}px, 0) scale(${(1 + (ai.s - 1) * z).toFixed(3)})` : '';
+  }
   if (hp === 0 && lastHp > 0) bits.forEach(b => { roll(b); b.k = b.glow = undefined; }); // new random burst every time the hero is back at rest
   lastHp = hp;
   h1.classList.toggle('boom', hp > 0);
@@ -162,7 +181,7 @@ const onScroll = () => {
   }
   if (reduce) return;
   if (heroEl) {
-    hpTarget = clamp01(y / vh);
+    hpTarget = clamp01(y / Math.max(1, heroEl.parentElement.offsetHeight - vh)); // progress through the pinned runway
     if (!hraf && hpTarget !== hpCur) hraf = requestAnimationFrame(heroStep);
   }
   drifts.forEach(el => {
@@ -177,7 +196,7 @@ const onScroll = () => {
   });
 };
 addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
-addEventListener('resize', onScroll);
+addEventListener('resize', () => { if (hpCur > 0) { measureAI(); explode(hpCur); } onScroll(); });
 onScroll();
 
 // Marquee tapes: follow scroll direction, speed up and lean with scroll velocity (rows run opposite ways)

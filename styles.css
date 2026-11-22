@@ -252,13 +252,16 @@ footer a:hover { color: var(--ink); }
 .progress { position: fixed; top: 0; left: 0; right: 0; z-index: 60; height: 2px; background: var(--accent); transform-origin: left; transform: scaleX(var(--sp, 0)); box-shadow: 0 0 12px var(--accent); }
 /* scrolling out of the hero: the video darkens while the headline's letters take the video's colours and explode (main.js) */
 .hero video { transform: scale(calc(1.05 + var(--hp, 0) * .12)); translate: calc(var(--px, 0) * -14px) calc(var(--py, 0) * -10px); opacity: calc(.9 - var(--dim, 0) * .82); } /* --dim eases in fast from the first pixel of scroll */
-.hero h1 { transform: translateY(calc(var(--hp, 0) * 22vh)); } /* sinks slightly so the burst stays on screen longer */
 .hero h1 .line:nth-child(1) { translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -8px); }
 .hero h1 .line:nth-child(2) { translate: calc(var(--px, 0) * 18px) calc(var(--py, 0) * 8px); }
 .hero h1.boom .line { overflow: visible; } /* drop the entrance mask once letters start flying */
 .hero h1 .word { display: inline-block; white-space: nowrap; }
 .hero h1 .ch { display: inline-block; will-change: transform, opacity; margin-right: -.01em; } /* makes up for kerning lost when letters are split */
 .hero-foot { translate: 0 calc(var(--hp, 0) * -6vh); }
+/* pinned hero: ~1.6 screens of scroll play the burst + AI zoom before the next section can arrive */
+.hero-runway { height: 260vh; }
+.hero-runway .hero { position: sticky; top: 0; height: 100svh; min-height: 0; }
+.hero-foot > *, .badge { opacity: calc(1 - var(--hp, 0) * 6); } /* copy and badge clear out at the start of the burst */
 .track { will-change: transform; }
 .worlds { overflow-x: clip; }
 .drift { display: inline-block; will-change: translate; }
@@ -274,6 +277,8 @@ footer a:hover { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   .hero video, .hero h1 { transform: none; opacity: 1; filter: none; translate: none; }
   .hero h1 .line { translate: none; }
+  .hero-runway { height: auto; }
+  .hero-runway .hero { position: relative; height: auto; min-height: 100svh; }
   .hero-foot, .drift { translate: none; }
 }
 
@@ -296,7 +301,7 @@ footer a:hover { color: var(--ink); }
   background-size: 250% 100%, 100% 100%;
   background-repeat: no-repeat;
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
-  padding: 0 .1em 0 .02em; margin: 0 -.08em 0 -.02em;
+  padding: .04em .14em .26em; margin: -.04em -.14em -.26em; /* room for italic overhang + comma tail so the clipped gradient never cuts them */
   filter: drop-shadow(0 0 22px color-mix(in srgb, var(--g2) 35%, transparent));
   animation: ai-colors 15s ease-in-out infinite, ai-shimmer 3s ease-in-out infinite, ai-flow 4s ease-in-out infinite alternate;
 }
