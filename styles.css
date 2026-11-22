@@ -9,6 +9,12 @@ html, body { background: #050407; }
   --build: #4D8BFF;
   --learn: #FFB547;
   --creators: #FF5FA2;
+  /* extra hues for the hero AI gradient */
+  --lilac: #E08CFF;
+  --coral: #FF7A59;
+  --gold: #FFD66B;
+  --teal: #3DDBD9;
+  --sky: #7CC8FF;
   --ease: cubic-bezier(.22, 1, .36, 1);
   --pad: clamp(20px, 4vw, 56px);
 }
@@ -273,26 +279,34 @@ footer a:hover { color: var(--ink); }
 .scrolled .nav::before { opacity: 1; }
 
 /* ===== FLASH LAYER ===== */
-/* "AI," has a soft two-colour gradient that fades to a new pair every 3s
+/* "AI,": soft three-colour gradient that fades to a new combo every 3s, with a light shimmer sweeping across
    (registered colour properties are what make a gradient animatable) */
 @property --g1 { syntax: "<color>"; inherits: false; initial-value: #A58BFF; }
-@property --g2 { syntax: "<color>"; inherits: false; initial-value: #FF5FA2; }
+@property --g2 { syntax: "<color>"; inherits: false; initial-value: #E08CFF; }
+@property --g3 { syntax: "<color>"; inherits: false; initial-value: #FF5FA2; }
+@property --ga { syntax: "<angle>"; inherits: false; initial-value: 115deg; }
 .shine {
-  --g1: var(--studio); --g2: var(--creators);
-  background: linear-gradient(115deg, var(--g1) 10%, var(--g2) 90%);
-  background: linear-gradient(in oklch 115deg, var(--g1) 10%, var(--g2) 90%);
+  --g1: var(--studio); --g2: var(--lilac); --g3: var(--creators);
+  --sheen: linear-gradient(105deg, transparent 45%, rgba(255, 255, 255, .35) 47.5%, #fff 50%, rgba(255, 255, 255, .35) 52.5%, transparent 55%);
+  background: var(--sheen), linear-gradient(var(--ga), var(--g1) 5%, var(--g2) 50%, var(--g3) 95%);
+  background: var(--sheen), linear-gradient(in oklch var(--ga), var(--g1) 5%, var(--g2) 50%, var(--g3) 95%);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
   padding: 0 .1em 0 .02em; margin: 0 -.08em 0 -.02em;
-  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--g1) 35%, transparent));
-  animation: ai-colors 12s ease-in-out infinite;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--g2) 35%, transparent));
+  animation: ai-colors 15s ease-in-out infinite, ai-shimmer 3s ease-in-out infinite, ai-flow 4s ease-in-out infinite alternate;
 }
 @keyframes ai-colors {
-  0%, 17% { --g1: var(--studio); --g2: var(--creators); }
-  25%, 42% { --g1: var(--creators); --g2: var(--learn); }
-  50%, 67% { --g1: var(--learn); --g2: var(--accent); }
-  75%, 92% { --g1: var(--build); --g2: var(--studio); }
-  100% { --g1: var(--studio); --g2: var(--creators); }
+  0%, 14% { --g1: var(--studio); --g2: var(--lilac); --g3: var(--creators); }
+  20%, 34% { --g1: var(--creators); --g2: var(--coral); --g3: var(--gold); }
+  40%, 54% { --g1: var(--gold); --g2: var(--accent); --g3: var(--teal); }
+  60%, 74% { --g1: var(--teal); --g2: var(--sky); --g3: var(--build); }
+  80%, 94% { --g1: var(--build); --g2: var(--studio); --g3: var(--lilac); }
+  100% { --g1: var(--studio); --g2: var(--lilac); --g3: var(--creators); }
 }
+@keyframes ai-flow { from { --ga: 80deg; } to { --ga: 170deg; } }
+@keyframes ai-shimmer { from { background-position: 160% 0, 0 0; } to { background-position: -60% 0, 0 0; } }
 ::selection { background: var(--accent); color: #0B0A05; -webkit-text-fill-color: #0B0A05; }
 
 /* cursor-following colour glow over the hero video */
