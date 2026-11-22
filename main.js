@@ -119,7 +119,7 @@ if (h1 && !reduce) {
 let lastHp = 0;
 const explode = hp => {
   if (!bits.length) return;
-  if (hp === 0 && lastHp > 0) bits.forEach(roll); // new random burst every time the hero is back at rest
+  if (hp === 0 && lastHp > 0) bits.forEach(b => { roll(b); b.k = b.glow = undefined; }); // new random burst every time the hero is back at rest
   lastHp = hp;
   h1.classList.toggle('boom', hp > 0);
   const k = clamp01(hp / .08); // letters are fully coloured within the first few pixels of scroll
@@ -129,17 +129,30 @@ const explode = hp => {
     st.transform = t ? `perspective(800px) translate3d(${(b.dx * e).toFixed(2)}vw, ${(b.dy * e).toFixed(2)}vh, 0) rotateX(${(b.rx * e).toFixed(1)}deg) rotateY(${(b.ry * e).toFixed(1)}deg) rotate(${(b.rz * e).toFixed(1)}deg) scale(${(1 + (b.s - 1) * e).toFixed(3)})` : '';
     st.opacity = t > .55 ? (1 - (t - .55) / .45).toFixed(3) : '';
     if (b.colored) {
-      st.color = k ? `color-mix(in oklch, ${b.col} ${(k * 100).toFixed(0)}%, #F5F1EA)` : '';
-      st.textShadow = t ? `0 0 ${(e * 28).toFixed(1)}px ${b.col}` : '';
+      if (k !== b.k) { b.k = k; st.color = k ? `color-mix(in oklch, ${b.col} ${(k * 100).toFixed(0)}%, #F5F1EA)` : ''; }
+      const glow = t > 0; // fixed glow (toggled once) so letters never repaint their shadow mid-flight
+      if (glow !== b.glow) { b.glow = glow; st.textShadow = glow ? `0 0 22px ${b.col}` : ''; }
     }
   });
 };
 let ticking = false;
 const clamp01 = v => Math.min(1, Math.max(0, v));
+const progressEl = document.querySelector('.progress');
+// Hero progress glides toward the scroll position (both directions) instead of jumping with each wheel step
+let hpTarget = 0, hpCur = 0, hraf = 0;
+const heroStep = () => {
+  hpCur += (hpTarget - hpCur) * .12;
+  if (Math.abs(hpTarget - hpCur) < .0005) hpCur = hpTarget;
+  // vars live on the hero, not :root, so only the hero restyles each frame
+  heroEl.style.setProperty('--hp', hpCur.toFixed(4));
+  heroEl.style.setProperty('--dim', (1 - (1 - clamp01(hpCur / .4)) ** 2).toFixed(4)); // ease-out: darkens right away, near-black by 40%
+  explode(hpCur);
+  hraf = hpCur !== hpTarget ? requestAnimationFrame(heroStep) : 0;
+};
 const onScroll = () => {
   ticking = false;
   const vh = innerHeight, y = scrollY;
-  root.style.setProperty('--sp', clamp01(y / (root.scrollHeight - vh)).toFixed(4));
+  if (progressEl) progressEl.style.setProperty('--sp', clamp01(y / (root.scrollHeight - vh)).toFixed(4));
   root.classList.toggle('scrolled', y > 40);
   if (man) {
     const r = man.getBoundingClientRect();
@@ -148,11 +161,9 @@ const onScroll = () => {
     pieces.forEach((el, i) => el.style.setProperty('--t', clamp01((p - (i / N - .08)) / .12).toFixed(3)));
   }
   if (reduce) return;
-  if (heroEl && y < vh * 1.2) {
-    const hp = clamp01(y / vh);
-    root.style.setProperty('--hp', hp.toFixed(4));
-    root.style.setProperty('--dim', (1 - (1 - clamp01(hp / .4)) ** 2).toFixed(4)); // ease-out: darkens right away, near-black by 40%
-    explode(hp);
+  if (heroEl) {
+    hpTarget = clamp01(y / vh);
+    if (!hraf && hpTarget !== hpCur) hraf = requestAnimationFrame(heroStep);
   }
   drifts.forEach(el => {
     const top = el.parentElement.getBoundingClientRect().top;
