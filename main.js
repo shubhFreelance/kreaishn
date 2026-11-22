@@ -38,7 +38,7 @@ if (rows.length && matchMedia('(hover: hover) and (pointer: fine)').matches && !
     peek.style.transform = `translate3d(${x + 28}px, ${y - 135}px, 0) rotate(${tilt}deg) scale(${.6 + .4 * s})`;
     peek.style.opacity = s;
     if (ts || s > .01) raf = requestAnimationFrame(step);
-    else vids.forEach(v => v.pause());
+    else { peek.style.opacity = 0; vids.forEach(v => v.pause()); }
   };
   rows.forEach((r, i) => {
     r.addEventListener('mouseenter', e => {
