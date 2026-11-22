@@ -4,7 +4,7 @@ html, body { background: #050407; }
   --ink: #F5F1EA;
   --mute: rgba(245, 241, 234, .62);
   --line: rgba(245, 241, 234, .12);
-  --accent: #E6D5BC; /* soft warm sand */
+  --accent: #D7FF3D;
   --studio: #A58BFF;
   --build: #4D8BFF;
   --learn: #FFB547;
@@ -306,7 +306,7 @@ footer a:hover { color: var(--ink); }
 .tape-b { background: #120F18; transform: rotate(2deg); }
 .tape-b .track span { color: var(--k); }
 .tape-b .track span:nth-child(even) { color: transparent; -webkit-text-stroke: 1.2px var(--k); }
-.tape-a { position: relative; z-index: 2; margin-top: -40px; background: var(--accent); color: #0B0A05; border: 0; transform: rotate(-1.5deg); }
+.tape-a { position: relative; z-index: 2; margin-top: -40px; background: #E6D5BC; /* softer sand on the tape only */ color: #0B0A05; border: 0; transform: rotate(-1.5deg); }
 .tape-a .track span::after { color: #0B0A05; }
 .tape-a .track span:nth-child(even) { -webkit-text-stroke: 1.2px #0B0A05; }
 
