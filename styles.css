@@ -70,7 +70,8 @@ a { color: inherit; text-decoration: none; }
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(14px, 1.6vw, 24px); }
 .card { --c: var(--studio); position: relative; min-height: clamp(520px, 52vw, 720px); border-radius: 28px; overflow: hidden; isolation: isolate; padding: clamp(24px, 2.6vw, 40px); display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--line); background: #0D0B12; transition: transform .7s var(--ease), border-color .5s; }
 .card:hover { transform: translateY(-6px); border-color: color-mix(in srgb, var(--c) 60%, transparent); }
-.card video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; opacity: .75; transform: scale(1.04); transition: opacity .7s, transform 1.4s var(--ease); }
+/* taller than the card so the scroll parallax (translate) never shows an edge */
+.card video { position: absolute; left: 0; top: -8%; width: 100%; height: 116%; object-fit: cover; z-index: -2; opacity: .75; transform: scale(1.04); transition: opacity .7s, transform 1.4s var(--ease); }
 .card:hover video { opacity: 1; transform: scale(1); }
 .card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(5, 4, 7, .7) 0%, rgba(5, 4, 7, .1) 38%, rgba(5, 4, 7, .55) 62%, rgba(5, 4, 7, .96) 100%); }
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -240,3 +241,29 @@ footer a:hover { color: var(--ink); }
   .row-media { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 18px; margin-bottom: 18px; border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) { .row.reveal > *, .phase { opacity: 1; transform: none; } }
+
+/* ===== HOMEPAGE SCROLL EFFECTS ===== */
+.progress { position: fixed; top: 0; left: 0; right: 0; z-index: 60; height: 2px; background: var(--lime); transform-origin: left; transform: scaleX(var(--sp, 0)); box-shadow: 0 0 12px var(--lime); }
+.hero video { transform: scale(calc(1 + var(--hp, 0) * .18)); }
+.hero h1 { transform: translateY(calc(var(--hp, 0) * -16vh)); opacity: calc(1 - var(--hp, 0) * 1.3); }
+.hero-foot { translate: 0 calc(var(--hp, 0) * -6vh); }
+.track { will-change: transform; }
+.worlds { overflow-x: clip; }
+.drift { display: inline-block; will-change: translate; }
+
+.manifesto { padding: clamp(120px, 14vw, 220px) var(--pad) 0; }
+.manifesto .eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: clamp(28px, 3vw, 44px); }
+.manifesto .eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 14px var(--lime); }
+.manifesto p { font: 500 clamp(28px, 5vw, 88px)/1.1 "Inter Tight", sans-serif; letter-spacing: -.035em; max-width: 30ch; color: var(--ink); }
+.manifesto .w, .manifesto .hl { opacity: calc(.14 + .86 * var(--t, 0)); }
+.manifesto .hl { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 400; color: var(--c); letter-spacing: -.01em; font-size: 1.12em; }
+.pill { display: inline-block; width: 1.7em; height: .92em; border-radius: 999px; overflow: hidden; vertical-align: -.1em; background: #15121C; transform: scale(var(--t, 0)); transform-origin: center; }
+.pill video { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (prefers-reduced-motion: reduce) {
+  .hero video, .hero h1 { transform: none; opacity: 1; }
+  .hero-foot, .drift { translate: none; }
+}
+
+/* Dark fade behind the fixed nav once the page is scrolled, so it never sits on top of text */
+.nav::before { content: ""; position: fixed; inset: 0 0 auto; height: 110px; z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgba(5, 4, 7, .92) 0%, rgba(5, 4, 7, .6) 55%, rgba(5, 4, 7, 0) 100%); opacity: 0; transition: opacity .4s; }
+.scrolled .nav::before { opacity: 1; }
