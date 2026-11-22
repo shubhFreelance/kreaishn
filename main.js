@@ -88,7 +88,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const roll = b => Object.assign(b, {
   col: PALETTE[(Math.random() * PALETTE.length) | 0],
   dx: b.dir * rnd(30, 75), dy: rnd(-45, 45), rz: rnd(-260, 260), rx: rnd(-150, 150), ry: rnd(-150, 150),
-  s: rnd(.3, 2.6), d: rnd(0, .2), len: rnd(.3, .55),
+  s: rnd(.3, 2.6), d: rnd(0, .12), len: rnd(.25, .4), // burst is over by ~half-way, before the dive
 });
 if (h1 && !reduce) {
   h1.setAttribute('aria-label', h1.textContent.replace(/\s+/g, ' ').trim());
@@ -97,7 +97,7 @@ if (h1 && !reduce) {
     const lineBits = [];
     const holder = line.firstElementChild;
     [...holder.childNodes].forEach(n => {
-      if (n.nodeType !== 3) { aiEl = n; return; } // the gradient "AI," zooms instead of bursting
+      if (n.nodeType !== 3) { if (!aiEl) aiEl = n; else lineBits.push({ el: n, colored: false }); return; } // "AI" zooms; the comma bursts with ONE STUDIO.
       const frag = document.createDocumentFragment();
       n.textContent.split(/(\s+)/).forEach(tok => {
         if (!tok) return;
@@ -117,6 +117,7 @@ if (h1 && !reduce) {
   });
 }
 const easeInOut = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+let flash = null; // full-screen colour flash that completes the dive (text stops rendering at extreme zoom)
 let ai = null; // AI's offset to the hero centre and its target zoom, measured at rest
 const measureAI = () => {
   if (!aiEl) return;
@@ -126,8 +127,30 @@ const measureAI = () => {
   ai = {
     dx: hr.left + hr.width / 2 - (r.left + r.width / 2),
     dy: hr.top + hr.height / 2 - (r.top + r.height / 2),
-    s: Math.min(hr.width * .8 / r.width, hr.height * .75 / r.height), // fills ~80% of the screen
+    s: Math.min(hr.width * .6 / r.width, hr.height * .55 / r.height), // logo size before the dive
   };
+  // dive target: the middle of the slanted "I" stem, found by drawing "AI" on a canvas and scanning its ink at
+  // mid-cap height, so flying into it floods the screen with the gradient instead of passing through a gap
+  const rg = document.createRange();
+  rg.selectNodeContents(aiEl);
+  const tr = rg.getBoundingClientRect(), cs = getComputedStyle(aiEl), fs = parseFloat(cs.fontSize);
+  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
+  const m = ctx.measureText('AI'), aW = ctx.measureText('A').width, capH = ctx.measureText('I').actualBoundingBoxAscent;
+  const pad = Math.ceil(fs * .5), W = Math.ceil(m.width + pad * 2), y = Math.round(m.fontBoundingBoxAscent - capH / 2);
+  ctx.canvas.width = W; ctx.canvas.height = Math.ceil(m.fontBoundingBoxAscent + m.fontBoundingBoxDescent);
+  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
+  ctx.fillText('AI', pad, m.fontBoundingBoxAscent);
+  const row = ctx.getImageData(0, y, W, 1).data;
+  let best = null, start = -1;
+  for (let x = 0; x <= W; x++) {
+    const ink = x < W && row[x * 4 + 3] > 128 && x - pad > aW * .85; // only the I's ink
+    if (ink && start < 0) start = x;
+    if (!ink && start >= 0) { if (!best || x - start > best[1] - best[0]) best = [start, x]; start = -1; }
+  }
+  const sx = best ? (best[0] + best[1]) / 2 - pad : aW + (m.width - aW) / 2;
+  ai.ox = tr.left + sx - (r.left + r.width / 2);
+  ai.oy = tr.top + y - (r.top + r.height / 2);
   aiEl.style.transform = prev;
 };
 let lastHp = 0;
@@ -135,8 +158,17 @@ const explode = hp => {
   if (!bits.length) return;
   if (hp > 0 && (lastHp === 0 || !ai)) measureAI();
   if (aiEl && ai) {
-    const c = easeInOut(clamp01(hp / .6)), z = easeInOut(clamp01(hp / .85));
-    aiEl.style.transform = hp ? `translate3d(${(ai.dx * c).toFixed(1)}px, ${(ai.dy * c).toFixed(1)}px, 0) scale(${(1 + (ai.s - 1) * z).toFixed(3)})` : '';
+    // phase 1 (0-45%): glide to centre and grow into a logo. phase 2 (45-82%): Netflix-style dive into the "I"
+    // that accelerates until the gradient floods the screen. 82-90%: hold the colour flash. 90-100%: fade, then the next section arrives.
+    const c = easeInOut(clamp01(hp / .45));
+    const dz = clamp01((hp - .45) / .37), aim = easeInOut(dz);
+    const sc = (1 + (ai.s - 1) * c) * Math.pow(16, dz * dz); // capped (~100x): browsers drop clipped-gradient text far beyond this
+    const tx = ai.dx * c - ai.ox * sc * aim, ty = ai.dy * c - ai.oy * sc * aim; // keeps the stem point sliding onto the screen centre
+    aiEl.style.transform = hp ? `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) scale(${sc.toFixed(3)})` : '';
+    aiEl.style.opacity = hp > .82 ? '0' : '';
+    if (!flash) { flash = document.createElement('div'); flash.className = 'ai-flash'; flash.setAttribute('aria-hidden', 'true'); heroEl.append(flash); }
+    // floods in over the last part of the dive, holds, then fades so the next section can arrive
+    flash.style.opacity = (hp < .9 ? clamp01((dz - .55) / .45) : 1 - clamp01((hp - .9) / .1)).toFixed(3);
   }
   if (hp === 0 && lastHp > 0) bits.forEach(b => { roll(b); b.k = b.glow = undefined; }); // new random burst every time the hero is back at rest
   lastHp = hp;
